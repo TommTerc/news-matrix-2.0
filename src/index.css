@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Share Tech Mono', monospace;
+  background-color: #000;
+  color: #00ff00;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #000;
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00ff00;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff4c;
+}
+
+/* Tron Energy Surge Effect */
+@keyframes tronSurge {
+  0% {
+    background-position: 200% 0;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.5;
+  }
+  60% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    background-position: -200% 0;
+    opacity: 0;
+  }
+}
+
+.energy-container {
+  position: relative;
+  background: rgba(0, 255, 0, 0.02);
+  border-radius: 0.5rem;
+  transition: transform 0.3s ease;
+}
+
+.energy-container:hover {
+  transform: translateY(-2px);
+}
+
+.energy-container::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 0.5rem;
+  padding: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #00ff00 25%,
+    #00ffff 50%,
+    #00ff00 75%,
+    transparent 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  background-size: 200% 100%;
+  animation: tronSurge 7.2s linear infinite;
+  pointer-events: none;
+  filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5));
+}
+
+/* Flow Animations */
+@keyframes flowIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes flowFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes flowScale {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Flow Classes */
+.flow-in {
+  animation: flowIn 0.6s ease-out forwards;
+}
+
+.flow-left {
+  animation: flowFromLeft 0.6s ease-out forwards;
+}
+
+.flow-scale {
+  animation: flowScale 0.6s ease-out forwards;
+}
+
+/* Staggered children animations */
+.flow-stagger > * {
+  opacity: 0;
+  animation: flowIn 0.6s ease-out forwards;
+}
+
+.flow-stagger > *:nth-child(1) { animation-delay: 0.1s; }
+.flow-stagger > *:nth-child(2) { animation-delay: 0.2s; }
+.flow-stagger > *:nth-child(3) { animation-delay: 0.3s; }
+.flow-stagger > *:nth-child(4) { animation-delay: 0.4s; }
+.flow-stagger > *:nth-child(5) { animation-delay: 0.5s; }
+.flow-stagger > *:nth-child(6) { animation-delay: 0.6s; }
+.flow-stagger > *:nth-child(7) { animation-delay: 0.7s; }
+.flow-stagger > *:nth-child(8) { animation-delay: 0.8s; }
+.flow-stagger > *:nth-child(9) { animation-delay: 0.9s; }
+.flow-stagger > *:nth-child(10) { animation-delay: 1s; }
+
+/* Hover effects */
+.hover-flow {
+  transition: all 0.3s ease;
+}
+
+.hover-flow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 255, 0, 0.2);
+}
+
+/* Matrix text effect */
+.matrix-text {
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+  transition: text-shadow 0.3s ease;
+}
+
+.matrix-text:hover {
+  text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+}
+
+/* Add radial gradient utility */
+@layer utilities {
+  .bg-gradient-radial {
+    background-image: radial-gradient(var(--tw-gradient-stops));
+  }
+}

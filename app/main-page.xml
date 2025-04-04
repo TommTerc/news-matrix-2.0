@@ -1,0 +1,31 @@
+<Page xmlns="http://schemas.nativescript.org/tns.xsd" navigatingTo="navigatingTo" class="bg-gray-100">
+    <ActionBar title="NewsSocial" class="bg-blue-600 text-white" />
+    
+    <ListView items="{{ newsItems }}" itemTap="{{ onItemTap }}" separatorColor="#ddd" class="list-group">
+        <ListView.itemTemplate>
+            <GridLayout rows="auto, auto" columns="*" class="p-4 bg-white mb-2">
+                <StackLayout row="0">
+                    <Label text="{{ title }}" class="text-lg font-bold mb-1" textWrap="true" />
+                    <Label text="{{ source }}" class="text-sm text-gray-500" />
+                </StackLayout>
+                
+                <GridLayout row="1" columns="auto,auto,auto" class="mt-2">
+                    <StackLayout col="0" orientation="horizontal" class="mr-4">
+                        <Label text="❤️" class="mr-1" />
+                        <Label text="{{ likes }}" />
+                    </StackLayout>
+                    
+                    <StackLayout col="1" orientation="horizontal" class="mr-4">
+                        <Label text="💬" class="mr-1" />
+                        <Label text="{{ comments }}" />
+                    </StackLayout>
+                    
+                    <StackLayout col="2" orientation="horizontal">
+                        <Label text="🔄" class="mr-1" />
+                        <Label text="{{ shares }}" />
+                    </StackLayout>
+                </GridLayout>
+            </GridLayout>
+        </ListView.itemTemplate>
+    </ListView>
+</Page>
