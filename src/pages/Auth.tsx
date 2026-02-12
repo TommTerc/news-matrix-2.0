@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
+import { adminService } from '../services/adminService';
 import { Link } from 'react-router-dom';
 import { FaGoogle, FaTwitter, FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
 
@@ -14,17 +15,25 @@ export default function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (mode === 'signin') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         alert(error.message);
       } else {
+        // Set as admin if email is tommyterc2021@gmail.com
+        if (data.user && email === 'tommyterc2021@gmail.com') {
+          await adminService.setAsAdmin(data.user.id);
+        }
         window.location.href = '/';
       }
     } else {
-      const { error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
       if (error) {
         alert(error.message);
       } else {
+        // Set as admin if email is tommyterc2021@gmail.com
+        if (data.user && email === 'tommyterc2021@gmail.com') {
+          await adminService.setAsAdmin(data.user.id);
+        }
         window.location.href = '/';
       }
     }

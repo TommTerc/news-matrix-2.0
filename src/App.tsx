@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { FaHashtag, FaBell, FaBookmark, FaUser, FaSearch, FaBars } from 'react-icons/fa';
+import { FaHashtag, FaBell, FaBookmark, FaUser, FaSearch, FaBars, FaCog } from 'react-icons/fa';
 import NewsDetail from './pages/NewsDetail';
 import Studio from './pages/Studio';
 import Explore from './pages/Explore';
@@ -11,6 +11,8 @@ import MatrixRain from './components/MatrixRain';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Home from './pages/Home';
+import AdminPanel from './pages/AdminPanel';
+import { adminService } from './services/adminService';
 
 function NavLink({ to, icon: Icon, label }: { to: string; icon: React.ComponentType; label: string }) {
   const location = useLocation();
@@ -35,13 +37,22 @@ function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   React.useEffect(() => {
     import('./services/supabaseClient').then(({ supabase }) => {
       supabase.auth.getSession().then(({ data }) => {
         setIsLoggedIn(!!data.session);
+        if (data.session) {
+          adminService.isAdmin(data.session.user.id).then(setIsAdmin);
+        }
       });
       supabase.auth.onAuthStateChange((_event, session) => {
         setIsLoggedIn(!!session);
+        if (session) {
+          adminService.isAdmin(session.user.id).then(setIsAdmin);
+        } else {
+          setIsAdmin(false);
+        }
       });
     });
   }, []);
@@ -77,6 +88,7 @@ function Navbar() {
                 <NavLink to="/notifications" icon={FaBell} label="Notifications" />
                 <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
                 <NavLink to="/profile" icon={FaUser} label="Profile" />
+                {isAdmin && <NavLink to="/admin" icon={FaCog} label="Admin" />}
               </>
             ) : (
               <NavLink to="/explore" icon={FaHashtag} label="Explore" />
@@ -110,6 +122,7 @@ function Navbar() {
                   <NavLink to="/notifications" icon={FaBell} label="Notifications" />
                   <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
                   <NavLink to="/profile" icon={FaUser} label="Profile" />
+                  {isAdmin && <NavLink to="/admin" icon={FaCog} label="Admin" />}
                 </>
               ) : (
                 <NavLink to="/explore" icon={FaHashtag} label="Explore" />
@@ -169,6 +182,7 @@ function App() {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/admin" element={<AdminPanel />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
             </Routes>
