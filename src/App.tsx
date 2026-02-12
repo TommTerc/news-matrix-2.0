@@ -34,6 +34,17 @@ function NavLink({ to, icon: Icon, label }: { to: string; icon: React.ComponentT
 function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  React.useEffect(() => {
+    import('./services/supabaseClient').then(({ supabase }) => {
+      supabase.auth.getSession().then(({ data }) => {
+        setIsLoggedIn(!!data.session);
+      });
+      supabase.auth.onAuthStateChange((_event, session) => {
+        setIsLoggedIn(!!session);
+      });
+    });
+  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-matrix-black/95 backdrop-blur-sm border-b border-matrix-green/30 z-50">
@@ -60,10 +71,24 @@ function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
-            <NavLink to="/explore" icon={FaHashtag} label="Explore" />
-            <NavLink to="/notifications" icon={FaBell} label="Notifications" />
-            <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
-            <NavLink to="/profile" icon={FaUser} label="Profile" />
+            {isLoggedIn ? (
+              <>
+                <NavLink to="/explore" icon={FaHashtag} label="Explore" />
+                <NavLink to="/notifications" icon={FaBell} label="Notifications" />
+                <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
+                <NavLink to="/profile" icon={FaUser} label="Profile" />
+              </>
+            ) : (
+              <NavLink to="/explore" icon={FaHashtag} label="Explore" />
+            )}
+            {!isLoggedIn && (
+              <Link
+                to="/auth"
+                className="px-4 py-2 rounded-lg bg-matrix-green text-matrix-dark font-semibold hover:bg-matrix-light transition-colors"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -79,10 +104,24 @@ function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-matrix-green/30">
             <div className="flex flex-col gap-2">
-              <NavLink to="/explore" icon={FaHashtag} label="Explore" />
-              <NavLink to="/notifications" icon={FaBell} label="Notifications" />
-              <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
-              <NavLink to="/profile" icon={FaUser} label="Profile" />
+              {isLoggedIn ? (
+                <>
+                  <NavLink to="/explore" icon={FaHashtag} label="Explore" />
+                  <NavLink to="/notifications" icon={FaBell} label="Notifications" />
+                  <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
+                  <NavLink to="/profile" icon={FaUser} label="Profile" />
+                </>
+              ) : (
+                <NavLink to="/explore" icon={FaHashtag} label="Explore" />
+              )}
+              {!isLoggedIn && (
+                <Link
+                  to="/auth"
+                  className="px-4 py-2 rounded-lg bg-matrix-green text-matrix-dark font-semibold hover:bg-matrix-light transition-colors text-center"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
             {/* Mobile Search */}
             <div className="mt-4">

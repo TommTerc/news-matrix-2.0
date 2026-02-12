@@ -2,14 +2,31 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaRegClock, FaRegComment, FaRegHeart, FaShare } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
-import { mockNews } from '../data/mockData';
+import newsApi from '../services/newsApi';
 
 export default function Home() {
   const [category, setCategory] = useState<string | undefined>();
-  
-  const filteredNews = category 
-    ? mockNews.filter(article => article.keywords.includes(category))
-    : mockNews;
+  const [news, setNews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setLoading(true);
+    setError(null);
+    newsApi.getTopHeadlines({
+      country: 'us',
+      category: category,
+      pageSize: 12
+    })
+      .then((res) => {
+        setNews(res.articles);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError('Failed to load news.');
+        setLoading(false);
+      });
+  }, [category]);
 
   return (
     <div className="min-h-screen bg-matrix-black/40 backdrop-blur-[2px] font-mono">
@@ -31,33 +48,33 @@ export default function Home() {
           ))}
         </div>
 
+        {loading && <div className="text-matrix-green">Loading news...</div>}
+        {error && <div className="text-red-500">{error}</div>}
+
         {/* News Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-          {filteredNews.map((article) => (
-            <Link
-              key={article.id}
-              to={`/news/${article.id}`}
+          {news.map((article, idx) => (
+            <a
+              key={article.url || idx}
+              href={article.url}
+              target="_blank"
+              rel="noopener noreferrer"
               className="energy-container block bg-black/40"
             >
               <div className="relative h-56 overflow-hidden">
                 <img
-                  src={article.image}
+                  src={article.urlToImage || 'https://via.placeholder.com/400x225?text=No+Image'}
                   alt={article.title}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                 />
-                {article.trending && (
-                  <div className="absolute top-4 right-4 bg-matrix-green/90 text-matrix-black px-3 py-1 rounded text-sm font-bold">
-                    Trending
-                  </div>
-                )}
               </div>
 
               <div className="p-6">
                 <div className="flex items-center gap-3 text-sm text-matrix-green/60 mb-3">
-                  <span>{article.source}</span>
+                  <span>{article.source?.name}</span>
                   <span>•</span>
                   <FaRegClock className="text-xs" />
-                  <span>{formatDistanceToNow(article.timestamp)} ago</span>
+                  <span>{formatDistanceToNow(new Date(article.publishedAt))} ago</span>
                 </div>
 
                 <h2 className="text-xl font-bold mb-3 text-matrix-green group-hover:text-matrix-light transition-colors">
@@ -67,34 +84,8 @@ export default function Home() {
                 <p className="text-matrix-green/80 text-sm mb-6 line-clamp-2">
                   {article.description}
                 </p>
-
-                <div className="flex items-center gap-8 text-sm text-matrix-green/60">
-                  <div className="flex items-center gap-2">
-                    <FaRegHeart />
-                    <span>{article.likes.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaRegComment />
-                    <span>{article.comments.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaShare />
-                    <span>{article.shares.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mt-6">
-                  {article.keywords.map((keyword, index) => (
-                    <span
-                      key={index}
-                      className="text-xs bg-matrix-green/10 text-matrix-green px-3 py-1 rounded-full"
-                    >
-                      #{keyword}
-                    </span>
-                  ))}
-                </div>
               </div>
-            </Link>
+            </a>
           ))}
         </div>
       </div>
