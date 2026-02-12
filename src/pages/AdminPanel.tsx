@@ -1,46 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { FaUsers, FaShield, FaCog, FaSignOutAlt } from 'react-icons/fa';
+import { Navigate } from 'react-router-dom';
 import { supabase } from '../services/supabaseClient';
 import { adminService } from '../services/adminService';
+import { FaSignOutAlt } from 'react-icons/fa';
 
 export default function AdminPanel() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    const checkAdminAndLoadUsers = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          window.location.href = '/auth';
-          return;
-        }
-
-        setCurrentUser(user);
-
-        // Check if user is admin
-        const adminStatus = await adminService.isAdmin(user.id);
-        setIsAdmin(adminStatus);
-
-        if (adminStatus) {
-          // Load all users
-          const allUsers = await adminService.getAllUsers();
-          setUsers(allUsers);
-        } else {
-          // Redirect non-admins
-          window.location.href = '/';
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
+    const checkAdminStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
         setLoading(false);
+        return;
       }
+
+      const admin = await adminService.isAdmin(session.user.id);
+      setIsAdmin(admin);
+      setCurrentUser(session.user);
+      
+      if (admin) {
+        const allUsers = await adminService.getAllUsers();
+        setUsers(allUsers || []);
+      }
+      
+      setLoading(false);
     };
 
-    checkAdminAndLoadUsers();
+    checkAdminStatus();
   }, []);
 
   const handleLogout = async () => {
@@ -48,104 +39,79 @@ export default function AdminPanel() {
     window.location.href = '/';
   };
 
-  if (loading) return <div className="text-matrix-green">Loading admin panel...</div>;
-  if (!isAdmin) return <div className="text-red-500">Access denied</div>;
+  if (loading) {
+    return <div className="text-matrix-green">Loading...</div>;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" />;
+  }
 
   return (
-    <div className="min-h-screen bg-matrix-black/40 font-mono pt-20">
+    <div className="min-h-screen bg-matrix-black/40 backdrop-blur-[2px] font-mono pt-20">
       <div className="max-w-7xl mx-auto px-8 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold text-matrix-green flex items-center gap-3">
-            <FaShield /> Administrative Panel
-          </h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-matrix-green">Admin Panel</h1>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
           >
             <FaSignOutAlt /> Logout
           </button>
         </div>
 
-        {/* Admin Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-black/40 border border-matrix-green/30 rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaUsers className="text-matrix-green text-2xl" />
-              <h3 className="text-matrix-green/60">Total Users</h3>
-            </div>
+        {currentUser && (
+          <div className="mb-8 p-4 border border-matrix-green/30 rounded bg-black/40">
+            <p className="text-matrix-green">Logged in as: <span className="font-bold">{currentUser.email}</span></p>
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-4 mb-12">
+          <div className="p-6 border border-matrix-green/30 rounded bg-black/40">
+            <p className="text-matrix-green/60 text-sm">Total Users</p>
             <p className="text-3xl font-bold text-matrix-green">{users.length}</p>
           </div>
-
-          <div className="bg-black/40 border border-matrix-green/30 rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaShield className="text-matrix-green text-2xl" />
-              <h3 className="text-matrix-green/60">Admin Users</h3>
-            </div>
-            <p className="text-3xl font-bold text-matrix-green">
-              {users.filter(u => u.role === 'admin').length}
-            </p>
+          <div className="p-6 border border-matrix-green/30 rounded bg-black/40">
+            <p className="text-matrix-green/60 text-sm">Admins</p>
+            <p className="text-3xl font-bold text-matrix-green">{users.filter(u => u.role === 'admin').length}</p>
           </div>
-
-          <div className="bg-black/40 border border-matrix-green/30 rounded-lg p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <FaCog className="text-matrix-green text-2xl" />
-              <h3 className="text-matrix-green/60">Settings</h3>
-            </div>
-            <p className="text-matrix-green">Configure system</p>
+          <div className="p-6 border border-matrix-green/30 rounded bg-black/40">
+            <p className="text-matrix-green/60 text-sm">Regular Users</p>
+            <p className="text-3xl font-bold text-matrix-green">{users.filter(u => u.role !== 'admin').length}</p>
           </div>
         </div>
 
         {/* Users Table */}
-        <div className="bg-black/40 border border-matrix-green/30 rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-matrix-green/30">
-            <h2 className="text-2xl font-bold text-matrix-green flex items-center gap-2">
-              <FaUsers /> User Management
-            </h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-matrix-green">
-              <thead>
-                <tr className="border-b border-matrix-green/30">
-                  <th className="px-6 py-3 text-left">User ID</th>
-                  <th className="px-6 py-3 text-left">Email</th>
-                  <th className="px-6 py-3 text-left">Role</th>
-                  <th className="px-6 py-3 text-left">Created At</th>
+        <div className="border border-matrix-green/30 rounded overflow-hidden bg-black/40">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-matrix-green/30 bg-matrix-green/10">
+                <th className="p-4 text-matrix-green">User ID</th>
+                <th className="p-4 text-matrix-green">Role</th>
+                <th className="p-4 text-matrix-green">Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-b border-matrix-green/20 hover:bg-matrix-green/5">
+                  <td className="p-4 text-matrix-green/80">{user.user_id}</td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1 rounded text-sm ${
+                      user.role === 'admin' 
+                        ? 'bg-yellow-600/20 text-yellow-400' 
+                        : 'bg-matrix-green/20 text-matrix-green'
+                    }`}>
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="p-4 text-matrix-green/60 text-sm">
+                    {new Date(user.created_at).toLocaleString()}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-matrix-green/10 hover:bg-matrix-green/5">
-                    <td className="px-6 py-3 font-mono text-sm">{user.user_id.substring(0, 8)}...</td>
-                    <td className="px-6 py-3">Admin Account</td>
-                    <td className="px-6 py-3">
-                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                        user.role === 'admin' 
-                          ? 'bg-matrix-green/20 text-matrix-green' 
-                          : 'bg-matrix-green/10 text-matrix-green/60'
-                      }`}>
-                        {user.role || 'user'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-sm text-matrix-green/60">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Admin Info */}
-        <div className="mt-12 p-6 bg-black/40 border border-matrix-green/30 rounded-lg">
-          <h3 className="text-lg font-bold text-matrix-green mb-4">Current Admin</h3>
-          <p className="text-matrix-green/80">
-            Logged in as: <span className="font-mono text-matrix-green">{currentUser?.email}</span>
-          </p>
-          <p className="text-matrix-green/80 mt-2">
-            User ID: <span className="font-mono text-matrix-green text-sm">{currentUser?.id}</span>
-          </p>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

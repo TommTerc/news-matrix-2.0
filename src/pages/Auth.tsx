@@ -40,12 +40,22 @@ export default function Auth() {
   };
 
   const handleGoogleAuth = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+    const { error } = await supabase.auth.signInWithOAuth({ 
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
     if (error) alert(error.message);
   };
 
   const handleTwitterAuth = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({ provider: 'twitter' });
+    const { error } = await supabase.auth.signInWithOAuth({ 
+      provider: 'twitter',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
     if (error) alert(error.message);
   };
 

@@ -5,6 +5,7 @@ import NewsDetail from './pages/NewsDetail';
 import Studio from './pages/Studio';
 import Explore from './pages/Explore';
 import Auth from './pages/Auth';
+import AuthCallback from './pages/AuthCallback';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import MatrixRain from './components/MatrixRain';
@@ -182,6 +183,7 @@ function App() {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
