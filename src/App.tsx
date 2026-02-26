@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { FaHashtag, FaBell, FaBookmark, FaUser, FaSearch, FaBars, FaCog } from 'react-icons/fa';
 import NewsDetail from './pages/NewsDetail';
+import StoryTimeline from './pages/StoryTimeline';
 import Studio from './pages/Studio';
 import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
@@ -178,6 +179,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/news/:id" element={<NewsDetail />} />
+              <Route path="/story" element={<StoryTimeline />} />
               <Route path="/studio" element={<Studio />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />

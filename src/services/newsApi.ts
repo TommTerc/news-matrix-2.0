@@ -9,6 +9,7 @@ export interface NewsApiArticle {
   title: string;
   description: string | null;
   url: string;
+  urlToImage?: string;
   publishedAt: string;
 }
 
