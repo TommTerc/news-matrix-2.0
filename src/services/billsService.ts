@@ -29,7 +29,41 @@ export interface BillWithActions extends Bill {
   actions: BillAction[];
 }
 
+export interface BillDetails {
+  url: string;
+  congress: number;
+  billType: string;
+  billNumber: string;
+  title: string;
+  introducedDate: string;
+  latestAction?: {
+    actionCode: string;
+    actionDate: string;
+    text: string;
+    type: string;
+  };
+}
+
 const billsService = {
+  // Fetch full bill details including title
+  getBillDetails: async (congress: number, billType: string, billNumber: string): Promise<BillDetails> => {
+    try {
+      const response = await axios.get(
+        `https://api.congress.gov/v3/bill/${congress}/${billType}/${billNumber}`,
+        {
+          params: {
+            api_key: API_CONFIG.congress.apiKey,
+            format: 'json'
+          }
+        }
+      );
+      return response.data.bill || response.data;
+    } catch (error) {
+      console.error('Error fetching bill details:', error);
+      throw error;
+    }
+  },
+
   // Fetch specific bill actions (includes all steps including presidential actions)
   getBillActions: async (congress: number, billType: string, billNumber: string): Promise<BillAction[]> => {
     try {

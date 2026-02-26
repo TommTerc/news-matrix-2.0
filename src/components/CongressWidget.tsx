@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaSpinner, FaCheckCircle, FaBan } from 'react-icons/fa';
-import billsService, { BillAction } from '../services/billsService';
+import billsService, { BillAction, BillDetails } from '../services/billsService';
 
 interface CongressWidgetProps {
   congress?: number;
@@ -10,26 +10,31 @@ interface CongressWidgetProps {
 
 export default function CongressWidget({ congress = 119, billType = 'hr', billNumber = '30' }: CongressWidgetProps) {
   const [actions, setActions] = useState<BillAction[]>([]);
+  const [billDetails, setBillDetails] = useState<BillDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'presidential'>('all');
 
   useEffect(() => {
-    const fetchBillActions = async () => {
+    const fetchBillData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await billsService.getBillActions(congress, billType, billNumber);
-        setActions(result);
+        const [details, actions] = await Promise.all([
+          billsService.getBillDetails(congress, billType, billNumber),
+          billsService.getBillActions(congress, billType, billNumber)
+        ]);
+        setBillDetails(details);
+        setActions(actions);
       } catch (err) {
-        console.error('Error fetching bill actions:', err);
+        console.error('Error fetching bill data:', err);
         setError('Failed to load congressional data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchBillActions();
+    fetchBillData();
   }, [congress, billType, billNumber]);
 
   const presidentialActions = billsService.extractPresidentialActions(actions);
@@ -46,9 +51,14 @@ export default function CongressWidget({ congress = 119, billType = 'hr', billNu
 
   return (
     <div className="w-full energy-container bg-black/40 p-3 rounded-lg border border-matrix-green/30">
-      <h3 className="text-lg font-bold text-matrix-green mb-3">
-        Congress: {billType.toUpperCase()} {billNumber}
+      <h3 className="text-lg font-bold text-matrix-green mb-1">
+        {billDetails?.title || `${billType.toUpperCase()} ${billNumber}`}
       </h3>
+      {billDetails?.title && (
+        <p className="text-xs text-matrix-green/60 mb-3">
+          {billType.toUpperCase()} {billNumber} • Congress {congress}
+        </p>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 mb-4">

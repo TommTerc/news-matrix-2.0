@@ -4,7 +4,6 @@ import { FaArrowLeft, FaHeart, FaComment, FaShare, FaChevronLeft, FaChevronRight
 import { format, formatDistanceToNow, isSameMonth } from 'date-fns';
 import { mockNews, timelineEvents, TimelineEvent } from '../data/mockData';
 import Comment from '../components/Comment';
-import RelatedVideos from '../components/RelatedVideos';
 
 export default function NewsDetail() {
   const { id } = useParams();
@@ -81,11 +80,6 @@ export default function NewsDetail() {
             </button>
           </div>
         </article>
-
-        {/* Related Videos */}
-        <div className="mb-8">
-          <RelatedVideos />
-        </div>
 
         {/* Timeline Section */}
         <section className="mb-12 overflow-hidden">
