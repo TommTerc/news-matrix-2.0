@@ -32,7 +32,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-matrix-black/40 backdrop-blur-[2px] font-mono">
-      <div className="max-w-7xl mx-auto px-8 py-12">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Category Tabs */}
         <div className="flex gap-6 mb-12 overflow-x-auto pb-2">
           {['all', 'technology', 'science', 'environment', 'AI'].map((cat) => (
