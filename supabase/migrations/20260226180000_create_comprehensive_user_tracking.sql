@@ -1,46 +1,13 @@
 /*
-  # Comprehensive User Tracking System
+  # Comprehensive User Tracking System - NEW TABLES ONLY
 
   Creates tables for tracking all user interactions across the platform:
-  - User profiles and settings
   - Article interactions (bookmarks, reads, likes, shares)
   - Social interactions (follows, user posts)
   - Engagement metrics and notifications
+  
+  NOTE: user_profiles table excluded (already exists)
 */
-
--- ============= USER PROFILES =============
-CREATE TABLE IF NOT EXISTS user_profiles (
-  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  username text UNIQUE NOT NULL,
-  display_name text,
-  bio text,
-  avatar_url text,
-  cover_image_url text,
-  website text,
-  location text,
-  is_verified boolean DEFAULT false,
-  is_admin boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now()
-);
-
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Public read profile data"
-  ON user_profiles FOR SELECT
-  TO public USING (true);
-
-CREATE POLICY "Users can update own profile"
-  ON user_profiles FOR UPDATE
-  TO authenticated USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own profile"
-  ON user_profiles FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE INDEX idx_user_profiles_username ON user_profiles(username);
 
 -- ============= ARTICLE BOOKMARKS =============
 CREATE TABLE IF NOT EXISTS article_bookmarks (
