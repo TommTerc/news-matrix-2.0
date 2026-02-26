@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import { FaHashtag, FaBell, FaBookmark, FaUser, FaSearch, FaBars, FaCog } from 'react-icons/fa';
 import NewsDetail from './pages/NewsDetail';
 import Studio from './pages/Studio';
-import Explore from './pages/Explore';
 import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import Terms from './pages/Terms';
@@ -62,13 +61,20 @@ function Navbar() {
     <nav className="fixed top-0 left-0 right-0 bg-matrix-black/95 backdrop-blur-sm border-b border-matrix-green/30 z-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/" className="text-2xl font-bold text-matrix-green">
-            NEWS MATRIX
-          </Link>
+          {/* Logo with Icon */}
+          <div className="flex items-center gap-3">
+            <Link to="/" className="text-2xl font-bold text-matrix-green">
+              NEWS MATRIX
+            </Link>
+            <img 
+              src="/src/images/matrix.jpeg" 
+              alt="matrix" 
+              className="h-12 w-12 rounded-full border border-matrix-green/50 object-cover"
+            />
+          </div>
 
           {/* Search Bar - Now with more width */}
-          <div className="flex items-center flex-1 mx-8">
+          <div className="flex items-center flex-1 mx-4">
             <div className="relative w-full max-w-2xl mx-auto">
               <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-matrix-green/60" />
               <input
@@ -85,15 +91,12 @@ function Navbar() {
           <div className="hidden md:flex items-center gap-4">
             {isLoggedIn ? (
               <>
-                <NavLink to="/explore" icon={FaHashtag} label="Explore" />
                 <NavLink to="/notifications" icon={FaBell} label="Notifications" />
                 <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
                 <NavLink to="/profile" icon={FaUser} label="Profile" />
                 {isAdmin && <NavLink to="/admin" icon={FaCog} label="Admin" />}
               </>
-            ) : (
-              <NavLink to="/explore" icon={FaHashtag} label="Explore" />
-            )}
+            ) : null}
             {!isLoggedIn && (
               <Link
                 to="/auth"
@@ -117,16 +120,13 @@ function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-matrix-green/30">
             <div className="flex flex-col gap-2">
-              {isLoggedIn ? (
+              {isLoggedIn && (
                 <>
-                  <NavLink to="/explore" icon={FaHashtag} label="Explore" />
                   <NavLink to="/notifications" icon={FaBell} label="Notifications" />
                   <NavLink to="/bookmarks" icon={FaBookmark} label="Bookmarks" />
                   <NavLink to="/profile" icon={FaUser} label="Profile" />
                   {isAdmin && <NavLink to="/admin" icon={FaCog} label="Admin" />}
                 </>
-              ) : (
-                <NavLink to="/explore" icon={FaHashtag} label="Explore" />
               )}
               {!isLoggedIn && (
                 <Link
@@ -179,7 +179,6 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/news/:id" element={<NewsDetail />} />
               <Route path="/studio" element={<Studio />} />
-              <Route path="/explore" element={<Explore />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />

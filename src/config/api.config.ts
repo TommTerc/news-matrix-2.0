@@ -11,5 +11,8 @@ export const API_CONFIG = {
   },
   openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY
+  },
+  congress: {
+    apiKey: import.meta.env.VITE_CONGRESS_API_KEY || 'OetikBF0w0FRbgcLqklIkqk5XKA294djEZzZAGEh'
   }
 };

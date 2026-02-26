@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { FaUserCircle, FaEdit, FaLink, FaBirthdayCake, FaStar, FaMedal, FaRegBookmark, FaRegComment, FaRegNewspaper } from 'react-icons/fa';
+import { FaUserCircle, FaEdit, FaLink, FaPhone, FaRegBookmark, FaRegComment, FaRegNewspaper } from 'react-icons/fa';
 import { format } from 'date-fns';
-import { mockNews } from '../data/mockData';
 
 type ProfileTab = 'overview' | 'posts' | 'comments' | 'saved';
 
@@ -10,8 +9,6 @@ interface UserProfile {
   displayName: string;
   bio: string;
   joinDate: Date;
-  karma: number;
-  awards: number;
   avatar?: string;
   bannerImage?: string;
 }
@@ -22,8 +19,6 @@ const mockUser: UserProfile = {
   displayName: 'Matrix Explorer',
   bio: 'Exploring the digital frontier. Passionate about technology and its impact on society.',
   joinDate: new Date(2023, 5, 15),
-  karma: 12547,
-  awards: 23,
   bannerImage: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5'
 };
 
@@ -45,49 +40,16 @@ export default function Profile() {
     switch (activeTab) {
       case 'overview':
         return (
-          <div className="space-y-6">
-            {mockNews.map((post) => (
-              <div 
-                key={post.id}
-                className="bg-matrix-black/80 border border-matrix-green/30 rounded-lg overflow-hidden hover:border-matrix-green transition-all"
-              >
-                <div className="p-4">
-                  <div className="flex items-center gap-2 text-sm text-matrix-green/60 mb-2">
-                    <span>{post.source}</span>
-                    <span>•</span>
-                    <span>Posted by u/{profile.username}</span>
-                  </div>
-                  <h3 className="text-lg font-bold mb-2 text-matrix-green">{post.title}</h3>
-                  <p className="text-matrix-green/80">{post.description}</p>
-                  
-                  <div className="flex items-center gap-6 mt-4 text-sm text-matrix-green/60">
-                    <span className="flex items-center gap-1">
-                      <FaRegComment /> {post.comments} comments
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FaRegBookmark /> Save
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="text-center text-matrix-green/60 py-12">
+            No posts yet
           </div>
         );
       
+      
       case 'posts':
         return (
-          <div className="space-y-6">
-            {mockNews.map((post) => (
-              <div 
-                key={post.id}
-                className="bg-matrix-black/80 border border-matrix-green/30 rounded-lg overflow-hidden hover:border-matrix-green transition-all"
-              >
-                <div className="p-4">
-                  <h3 className="text-lg font-bold mb-2 text-matrix-green">{post.title}</h3>
-                  <p className="text-matrix-green/80">{post.description}</p>
-                </div>
-              </div>
-            ))}
+          <div className="text-center text-matrix-green/60 py-12">
+            No posts yet
           </div>
         );
       
@@ -123,11 +85,33 @@ export default function Profile() {
           <div className="bg-matrix-black/80 border border-matrix-green/30 rounded-lg p-6">
             <div className="flex items-start gap-6">
               {/* Avatar */}
-              <div className="w-32 h-32 rounded-full bg-matrix-green/20 flex items-center justify-center text-6xl text-matrix-green border-4 border-matrix-black overflow-hidden">
-                {profile.avatar ? (
-                  <img src={profile.avatar} alt={profile.displayName} className="w-full h-full object-cover" />
-                ) : (
-                  <FaUserCircle />
+              <div className="relative">
+                <div className="w-32 h-32 rounded-full bg-matrix-green/20 flex items-center justify-center text-6xl text-matrix-green border-4 border-matrix-black overflow-hidden">
+                  {profile.avatar ? (
+                    <img src={profile.avatar} alt={profile.displayName} className="w-full h-full object-cover" />
+                  ) : (
+                    <FaUserCircle />
+                  )}
+                </div>
+                {isEditing && (
+                  <label className="absolute bottom-0 right-0 p-2 bg-matrix-green rounded-full cursor-pointer hover:bg-matrix-light transition-colors">
+                    <FaEdit className="text-matrix-black" />
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            setProfile({ ...profile, avatar: event.target?.result as string });
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
                 )}
               </div>
 
@@ -174,16 +158,8 @@ export default function Profile() {
                 {/* Stats */}
                 <div className="flex items-center gap-6 text-matrix-green/60">
                   <div className="flex items-center gap-2">
-                    <FaBirthdayCake className="text-matrix-green" />
+                    <FaPhone className="text-matrix-green" />
                     <span>Joined {format(profile.joinDate, 'MMMM yyyy')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaStar className="text-matrix-green" />
-                    <span>{profile.karma.toLocaleString()} karma</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaMedal className="text-matrix-green" />
-                    <span>{profile.awards} awards</span>
                   </div>
                 </div>
               </div>
