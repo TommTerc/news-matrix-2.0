@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient';
 
 export interface UserProfile {
-  user_id: string;
+  id: string;
   username: string;
   display_name: string | null;
   bio: string | null;
@@ -9,10 +9,10 @@ export interface UserProfile {
   cover_image_url: string | null;
   website: string | null;
   location: string | null;
-  is_verified: boolean;
-  is_admin: boolean;
-  created_at: string;
-  updated_at: string;
+  is_verified?: boolean;
+  is_admin?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 class UserProfileService {
@@ -23,7 +23,7 @@ class UserProfileService {
     const { data, error } = await supabase
       .from('user_profiles')
       .select('*')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     if (error && error.code !== 'PGRST116') {
@@ -52,21 +52,30 @@ class UserProfileService {
    * Create or update user profile
    */
   async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .upsert({
-        user_id: userId,
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .upsert({
+          id: userId,
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error updating profile:', error);
+      if (error) {
+        console.error('Error updating profile - Error Details:', error);
+        console.error('Error Code:', error.code);
+        console.error('Error Message:', error.message);
+        return null;
+      }
+      
+      console.log('Profile updated successfully:', data);
+      return data;
+    } catch (err) {
+      console.error('Exception in updateProfile:', err);
       return null;
     }
-    return data;
   }
 
   /**

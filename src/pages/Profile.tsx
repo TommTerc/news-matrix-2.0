@@ -7,17 +7,17 @@ import userProfileService from '../services/userProfileService';
 type ProfileTab = 'overview' | 'posts' | 'comments' | 'saved';
 
 interface UserProfile {
-  user_id?: string;
+  id?: string;
   username: string;
-  display_name: string;
-  bio: string;
+  display_name: string | null;
+  bio: string | null;
   joinDate?: Date;
-  avatar?: string;
-  avatar_url?: string;
-  bannerImage?: string;
-  cover_image_url?: string;
-  website?: string;
-  location?: string;
+  avatar?: string | null;
+  avatar_url?: string | null;
+  bannerImage?: string | null;
+  cover_image_url?: string | null;
+  website?: string | null;
+  location?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -30,6 +30,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   // Load user and profile on mount
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function Profile() {
         } else {
           // Create default profile for new user
           setProfile({
-            user_id: currentUser.id,
+            id: currentUser.id,
             username: currentUser.user_metadata?.username || currentUser.email?.split('@')[0] || 'user',
             display_name: currentUser.user_metadata?.display_name || currentUser.email?.split('@')[0] || 'User',
             bio: '',
@@ -89,15 +90,16 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      const profileData = await userProfileService.updateProfile(user.id, {
+      // Only save database fields (not data URLs)
+      const updates: Partial<UserProfile> = {
         username: profile.username,
         display_name: profile.display_name,
         bio: profile.bio,
-        avatar_url: profile.avatar_url || profile.avatar,
-        cover_image_url: profile.cover_image_url || profile.bannerImage,
-        website: profile.website,
-        location: profile.location
-      });
+        website: profile.website || null,
+        location: profile.location || null
+      };
+
+      const profileData = await userProfileService.updateProfile(user.id, updates);
 
       if (profileData) {
         setProfile({
@@ -108,10 +110,14 @@ export default function Profile() {
         });
         setIsEditing(false);
         setError(null);
+        setSuccess(true);
+        setTimeout(() => setSuccess(false), 3000); // Hide success message after 3 seconds
+      } else {
+        setError('Failed to save profile changes');
       }
     } catch (err) {
       console.error('Error saving profile:', err);
-      setError('Failed to save profile');
+      setError('Failed to save profile: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setSaving(false);
     }
@@ -174,6 +180,13 @@ export default function Profile() {
             <div className="absolute inset-0 bg-gradient-to-t from-matrix-black/80 to-transparent" />
           </div>
 
+          {/* Success Message */}
+          {success && (
+            <div className="bg-green-500/20 text-green-400 p-3 text-center border border-green-500 mx-4 -mb-2 rounded">
+              ✓ Profile saved successfully!
+            </div>
+          )}
+
           {/* Profile Info */}
           <div className="max-w-5xl mx-auto px-4">
             <div className="relative -mt-20 mb-8">
@@ -183,7 +196,7 @@ export default function Profile() {
                   <div className="relative">
                     <div className="w-32 h-32 rounded-full bg-matrix-green/20 flex items-center justify-center text-6xl text-matrix-green border-4 border-matrix-black overflow-hidden">
                       {profile.avatar ? (
-                        <img src={profile.avatar} alt={profile.display_name} className="w-full h-full object-cover" />
+                        <img src={profile.avatar} alt={profile.display_name || 'User avatar'} className="w-full h-full object-cover" />
                       ) : (
                         <FaUserCircle />
                       )}
@@ -218,7 +231,7 @@ export default function Profile() {
                           <label className="text-sm text-matrix-green/60">Display Name</label>
                           <input
                             type="text"
-                            value={profile.display_name}
+                            value={profile.display_name || ''}
                             onChange={(e) => setProfile({ ...profile, display_name: e.target.value })}
                             className="w-full bg-matrix-dark border border-matrix-green/30 rounded p-2 text-matrix-green"
                           />
@@ -235,7 +248,7 @@ export default function Profile() {
                         <div>
                           <label className="text-sm text-matrix-green/60">Bio</label>
                           <textarea
-                            value={profile.bio}
+                            value={profile.bio || ''}
                             onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                             className="w-full bg-matrix-dark border border-matrix-green/30 rounded p-2 text-matrix-green"
                             rows={3}
