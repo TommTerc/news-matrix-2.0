@@ -9,7 +9,11 @@ export interface Comment {
   updated_at: string;
   user?: {
     email?: string;
+    username?: string;
+    display_name?: string;
   };
+  username?: string;
+  display_name?: string;
 }
 
 class CommentService {
@@ -19,7 +23,18 @@ class CommentService {
   async getComments(articleUrl: string): Promise<Comment[]> {
     const { data, error } = await supabase
       .from('comments')
-      .select('*')
+      .select(`
+        id,
+        article_url,
+        user_id,
+        content,
+        created_at,
+        updated_at,
+        user_profiles!user_id (
+          username,
+          display_name
+        )
+      `)
       .eq('article_url', articleUrl)
       .order('created_at', { ascending: false });
 
@@ -28,7 +43,12 @@ class CommentService {
       return [];
     }
 
-    return data || [];
+    // Transform data to include user profile fields at top level
+    return (data || []).map((comment: any) => ({
+      ...comment,
+      username: comment.user_profiles?.username || 'Anonymous',
+      display_name: comment.user_profiles?.display_name
+    }));
   }
 
   /**

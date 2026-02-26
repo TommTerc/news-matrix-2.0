@@ -372,9 +372,14 @@ export default function StoryTimeline() {
                     className="border border-matrix-green/20 rounded p-3 bg-black/30 hover:bg-black/40 transition-colors"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <p className="text-xs text-matrix-green/60">
-                        {new Date(comment.created_at).toLocaleDateString()}
-                      </p>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm font-semibold text-matrix-green">
+                          {comment.display_name || comment.username || 'Anonymous'}
+                        </p>
+                        <p className="text-xs text-matrix-green/60">
+                          @{comment.username || 'user'} • {new Date(comment.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
                       {user?.id === comment.user_id && (
                         <button
                           onClick={() => handleDeleteComment(comment.id)}
