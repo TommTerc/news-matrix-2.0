@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FaSpinner, FaCheckCircle, FaBan } from 'react-icons/fa';
+import { FaSpinner, FaCheckCircle, FaBan, FaThumbsUp, FaThumbsDown, FaHandPaper } from 'react-icons/fa';
 import billsService, { BillAction, BillDetails } from '../services/billsService';
+import pollService, { PollResults, VoteType } from '../services/pollService';
+import { supabase } from '../services/supabaseClient';
 
 interface CongressWidgetProps {
   congress?: number;
@@ -14,6 +16,10 @@ export default function CongressWidget({ congress = 119, billType = 'hr', billNu
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'presidential'>('all');
+  const [user, setUser] = useState<any>(null);
+  const [userVote, setUserVote] = useState<VoteType | null>(null);
+  const [pollResults, setPollResults] = useState<PollResults>({ support: 0, oppose: 0, abstain: 0, total: 0 });
+  const [votingLoading, setVotingLoading] = useState(false);
 
   useEffect(() => {
     const fetchBillData = async () => {
@@ -37,6 +43,26 @@ export default function CongressWidget({ congress = 119, billType = 'hr', billNu
     fetchBillData();
   }, [congress, billType, billNumber]);
 
+  useEffect(() => {
+    const fetchUserAndPoll = async () => {
+      // Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+
+      // Fetch poll results
+      const results = await pollService.getPollResults(congress, billType, parseInt(billNumber));
+      setPollResults(results);
+
+      // Fetch user's vote if authenticated
+      if (currentUser) {
+        const vote = await pollService.getUserVote(congress, billType, parseInt(billNumber));
+        setUserVote(vote);
+      }
+    };
+
+    fetchUserAndPoll();
+  }, [congress, billType, billNumber]);
+
   const presidentialActions = billsService.extractPresidentialActions(actions);
   const displayActions = activeTab === 'presidential' ? presidentialActions : actions.slice(0, 5);
 
@@ -47,6 +73,34 @@ export default function CongressWidget({ congress = 119, billType = 'hr', billNu
       return <FaBan className="text-red-500" />;
     }
     return null;
+  };
+
+  const handleVote = async (voteType: VoteType) => {
+    if (!user) {
+      // Redirect to auth or show modal
+      alert('Please sign in to vote on bills');
+      return;
+    }
+
+    setVotingLoading(true);
+    try {
+      const success = await pollService.submitVote(congress, billType, parseInt(billNumber), voteType);
+      if (success) {
+        setUserVote(voteType);
+        // Refresh poll results
+        const results = await pollService.getPollResults(congress, billType, parseInt(billNumber));
+        setPollResults(results);
+      }
+    } catch (err) {
+      console.error('Error voting:', err);
+    } finally {
+      setVotingLoading(false);
+    }
+  };
+
+  const getPercentage = (count: number) => {
+    if (pollResults.total === 0) return 0;
+    return Math.round((count / pollResults.total) * 100);
   };
 
   return (
@@ -60,7 +114,92 @@ export default function CongressWidget({ congress = 119, billType = 'hr', billNu
         </p>
       )}
 
-      {/* Tabs */}
+      {/* Poll Section */}
+      <div className="mb-4 p-3 bg-black/60 rounded border border-matrix-green/20">
+        <p className="text-xs font-semibold text-matrix-green mb-2">What's your stance?</p>
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => handleVote('support')}
+            disabled={votingLoading}
+            className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-xs rounded transition-colors ${
+              userVote === 'support'
+                ? 'bg-green-500/30 text-green-400 border border-green-500'
+                : 'bg-black/40 text-matrix-green/60 border border-matrix-green/20 hover:border-matrix-green/40'
+            } disabled:opacity-50`}
+          >
+            <FaThumbsUp size={12} />
+            Support
+          </button>
+          <button
+            onClick={() => handleVote('oppose')}
+            disabled={votingLoading}
+            className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-xs rounded transition-colors ${
+              userVote === 'oppose'
+                ? 'bg-red-500/30 text-red-400 border border-red-500'
+                : 'bg-black/40 text-matrix-green/60 border border-matrix-green/20 hover:border-matrix-green/40'
+            } disabled:opacity-50`}
+          >
+            <FaThumbsDown size={12} />
+            Oppose
+          </button>
+          <button
+            onClick={() => handleVote('abstain')}
+            disabled={votingLoading}
+            className={`flex-1 flex items-center justify-center gap-1 px-2 py-2 text-xs rounded transition-colors ${
+              userVote === 'abstain'
+                ? 'bg-yellow-500/30 text-yellow-400 border border-yellow-500'
+                : 'bg-black/40 text-matrix-green/60 border border-matrix-green/20 hover:border-matrix-green/40'
+            } disabled:opacity-50`}
+          >
+            <FaHandPaper size={12} />
+            Abstain
+          </button>
+        </div>
+
+        {/* Poll Results */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-matrix-green/60">Support</span>
+            <span className="text-xs text-matrix-green">{getPercentage(pollResults.support)}%</span>
+          </div>
+          <div className="h-2 bg-black/60 rounded border border-matrix-green/20 overflow-hidden">
+            <div
+              className="h-full bg-green-500/50 transition-all"
+              style={{ width: `${getPercentage(pollResults.support)}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mb-1 mt-2">
+            <span className="text-xs text-matrix-green/60">Oppose</span>
+            <span className="text-xs text-matrix-green">{getPercentage(pollResults.oppose)}%</span>
+          </div>
+          <div className="h-2 bg-black/60 rounded border border-matrix-green/20 overflow-hidden">
+            <div
+              className="h-full bg-red-500/50 transition-all"
+              style={{ width: `${getPercentage(pollResults.oppose)}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between mb-1 mt-2">
+            <span className="text-xs text-matrix-green/60">Abstain</span>
+            <span className="text-xs text-matrix-green">{getPercentage(pollResults.abstain)}%</span>
+          </div>
+          <div className="h-2 bg-black/60 rounded border border-matrix-green/20 overflow-hidden">
+            <div
+              className="h-full bg-yellow-500/50 transition-all"
+              style={{ width: `${getPercentage(pollResults.abstain)}%` }}
+            />
+          </div>
+
+          <div className="text-xs text-matrix-green/40 mt-2 text-center">
+            {pollResults.total} {pollResults.total === 1 ? 'vote' : 'votes'}
+          </div>
+        </div>
+
+        {!user && (
+          <p className="text-xs text-matrix-green/50 mt-2 text-center italic">Sign in to vote</p>
+        )}
+      </div>
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setActiveTab('all')}
