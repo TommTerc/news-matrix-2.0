@@ -29,6 +29,7 @@ export default function Profile() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -54,7 +55,7 @@ export default function Profile() {
             ...profileData,
             avatar: profileData.avatar_url,
             bannerImage: profileData.cover_image_url,
-            joinDate: new Date(profileData.created_at)
+            joinDate: profileData.created_at ? new Date(profileData.created_at) : new Date()
           });
         } else {
           // Create default profile for new user
@@ -85,6 +86,53 @@ export default function Profile() {
     setIsEditing(true);
   };
 
+  const handleAvatarUpload = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true);
+      
+      if (!user) {
+        setError('User not authenticated');
+        return null;
+      }
+
+      // Create a unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, file, { 
+          upsert: true,
+          cacheControl: '3600'
+        });
+
+      if (uploadError) {
+        console.error('Avatar upload error:', uploadError);
+        setError(`Failed to upload avatar: ${uploadError.message}`);
+        return null;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+
+      if (urlData?.publicUrl) {
+        return urlData.publicUrl;
+      }
+
+      return null;
+    } catch (err) {
+      console.error('Error uploading avatar:', err);
+      setError('Failed to upload avatar: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!profile || !user) return;
 
@@ -99,6 +147,12 @@ export default function Profile() {
         location: profile.location || null
       };
 
+      // If avatar is a data URL (newly uploaded), don't save it directly
+      // The file picker will handle it separately through the upload handler
+      if (profile.avatar_url && !profile.avatar_url.startsWith('data:')) {
+        updates.avatar_url = profile.avatar_url;
+      }
+
       const profileData = await userProfileService.updateProfile(user.id, updates);
 
       if (profileData) {
@@ -106,7 +160,7 @@ export default function Profile() {
           ...profileData,
           avatar: profileData.avatar_url,
           bannerImage: profileData.cover_image_url,
-          joinDate: new Date(profileData.created_at)
+          joinDate: profileData.created_at ? new Date(profileData.created_at) : new Date()
         });
         setIsEditing(false);
         setError(null);
@@ -208,16 +262,16 @@ export default function Profile() {
                           type="file" 
                           accept="image/*" 
                           className="hidden" 
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                setProfile({ ...profile, avatar: event.target?.result as string });
-                              };
-                              reader.readAsDataURL(file);
+                              const url = await handleAvatarUpload(file);
+                              if (url) {
+                                setProfile({ ...profile, avatar: url, avatar_url: url });
+                              }
                             }
                           }}
+                          disabled={uploading}
                         />
                       </label>
                     )}
