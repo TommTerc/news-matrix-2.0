@@ -58,40 +58,49 @@ export default function Home() {
           {/* News Feed - Takes up 2/3 width on large screens */}
           <div className="lg:col-span-2">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {news.map((article, idx) => (
-                <a
-                  key={article.url || idx}
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="energy-container block bg-black/40"
-                >
-                  <div className="relative h-56 overflow-hidden">
-                    <img
-                      src={article.urlToImage || 'https://via.placeholder.com/400x225?text=No+Image'}
-                      alt={article.title}
-                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  </div>
+              {news.map((article, idx) => {
+                const storyParams = new URLSearchParams({
+                  title: article.title,
+                  source: article.source?.name || 'Unknown',
+                  description: article.description || '',
+                  publishedAt: article.publishedAt,
+                  url: article.url,
+                  ...(article.urlToImage && { urlToImage: article.urlToImage })
+                });
 
-                  <div className="p-6">
-                    <div className="flex items-center gap-3 text-sm text-matrix-green/60 mb-3">
-                      <span>{article.source?.name}</span>
-                      <span>•</span>
-                      <FaRegClock className="text-xs" />
-                      <span>{formatDistanceToNow(new Date(article.publishedAt))} ago</span>
+                return (
+                  <Link
+                    key={article.url || idx}
+                    to={`/story?${storyParams.toString()}`}
+                    className="energy-container block bg-black/40 hover:border-matrix-green transition-all"
+                  >
+                    <div className="relative h-56 overflow-hidden">
+                      <img
+                        src={article.urlToImage || 'https://via.placeholder.com/400x225?text=No+Image'}
+                        alt={article.title}
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      />
                     </div>
 
-                    <h2 className="text-xl font-bold mb-3 text-matrix-green group-hover:text-matrix-light transition-colors">
-                      {article.title}
-                    </h2>
+                    <div className="p-6">
+                      <div className="flex items-center gap-3 text-sm text-matrix-green/60 mb-3">
+                        <span>{article.source?.name}</span>
+                        <span>•</span>
+                        <FaRegClock className="text-xs" />
+                        <span>{formatDistanceToNow(new Date(article.publishedAt))} ago</span>
+                      </div>
 
-                    <p className="text-matrix-green/80 text-sm mb-6 line-clamp-2">
-                      {article.description}
-                    </p>
-                  </div>
-                </a>
-              ))}
+                      <h2 className="text-xl font-bold mb-3 text-matrix-green group-hover:text-matrix-light transition-colors">
+                        {article.title}
+                      </h2>
+
+                      <p className="text-matrix-green/80 text-sm mb-6 line-clamp-2">
+                        {article.description}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
 
