@@ -168,6 +168,95 @@ app.get('/api/news/top-headlines', async (req, res) => {
   }
 });
 
+// Extract metadata (title, image, description) from article page
+app.post('/api/extract-metadata', async (req, res) => {
+  const { url } = req.body;
+  
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
+  }
+
+  try {
+    console.log('Extracting metadata from:', url);
+    
+    const response = await axios.get(url, {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    const html = response.data;
+    const metadata = {
+      title: undefined,
+      description: undefined,
+      image: undefined
+    };
+    
+    // Extract title
+    let match = html.match(/<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']/i);
+    if (match && match[1]) metadata.title = match[1];
+    else {
+      match = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      if (match && match[1]) metadata.title = match[1];
+    }
+    
+    // Extract description
+    match = html.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i);
+    if (match && match[1]) metadata.description = match[1];
+    else {
+      match = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
+      if (match && match[1]) metadata.description = match[1];
+    }
+    
+    // Extract image - try multiple sources
+    match = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+    if (match && match[1]) {
+      metadata.image = match[1];
+      console.log('Found image via og:image');
+    }
+    
+    if (!metadata.image) {
+      match = html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
+      if (match && match[1]) {
+        metadata.image = match[1];
+        console.log('Found image via twitter:image');
+      }
+    }
+    
+    if (!metadata.image) {
+      match = html.match(/<meta\s+name=["']image["']\s+content=["']([^"']+)["']/i);
+      if (match && match[1]) {
+        metadata.image = match[1];
+        console.log('Found image via meta:image');
+      }
+    }
+    
+    if (!metadata.image) {
+      match = html.match(/<img\s+[^>]*src=["']([^"'>"]+)["'][^>]*>/i);
+      if (match && match[1]) {
+        let imgUrl = match[1];
+        // Convert relative URLs to absolute
+        if (!imgUrl.startsWith('http')) {
+          const urlObj = new URL(url);
+          imgUrl = new URL(imgUrl, url).href;
+        }
+        metadata.image = imgUrl;
+        console.log('Found image via img tag');
+      }
+    }
+    
+    console.log('Extracted metadata:', metadata);
+    res.json(metadata);
+  } catch (error) {
+    console.error('Error extracting metadata:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to extract metadata',
+      message: error.message
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Proxy server running on port ${PORT}`);
 });

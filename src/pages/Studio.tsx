@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaImage, FaTag, FaTimes, FaCode, FaPlus } from 'react-icons/fa';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import activityLogService from '../services/activityLogService';
 
 // Add Twitter types
 declare global {
@@ -190,6 +191,13 @@ export default function Studio() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Content to submit:', content);
+    
+    // Log post creation
+    const postId = `post_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    activityLogService.logPostCreate(postId).catch(err =>
+      console.error('Error logging post creation:', err)
+    );
+    
     setContent({
       title: '',
       description: '',

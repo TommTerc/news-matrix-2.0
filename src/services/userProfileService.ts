@@ -51,15 +51,31 @@ class UserProfileService {
   /**
    * Create or update user profile
    */
-  async updateProfile(userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
+  async updateProfile(userId: string, updates: Partial<UserProfile>, email?: string): Promise<UserProfile | null> {
     try {
+      // Get current user email if not provided
+      let userEmail = email;
+      if (!userEmail) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        userEmail = currentUser?.email;
+      }
+
+      // Ensure email is provided - it's required by the database
+      if (!userEmail) {
+        console.error('User email is required to update profile');
+        return null;
+      }
+
+      const profileUpdate = {
+        id: userId,
+        email: userEmail,
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('user_profiles')
-        .upsert({
-          id: userId,
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .upsert(profileUpdate)
         .select()
         .single();
 
@@ -67,6 +83,7 @@ class UserProfileService {
         console.error('Error updating profile - Error Details:', error);
         console.error('Error Code:', error.code);
         console.error('Error Message:', error.message);
+        console.error('Full error object:', error);
         return null;
       }
       

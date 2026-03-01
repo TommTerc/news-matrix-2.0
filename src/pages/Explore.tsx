@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaSearch, FaChartLine, FaBolt, FaGlobe, FaHashtag, FaRegNewspaper, FaSpinner } from 'react-icons/fa';
 import { mockNews } from '../data/mockData';
 import { formatDistanceToNow } from 'date-fns';
+import activityLogService from '../services/activityLogService';
 
 // Temporary mock data until the trending service is fully configured
 const mockTrends = [
@@ -26,6 +27,12 @@ export default function Explore() {
       return `${(count / 1000).toFixed(1)}K`;
     }
     return count.toString();
+  };
+
+  const handleNewsClick = (newsItem: any) => {
+    activityLogService.logArticleView(newsItem.id).catch(err =>
+      console.error('Error logging article view:', err)
+    );
   };
 
   const filteredNews = mockNews.filter(item =>
@@ -137,6 +144,7 @@ export default function Explore() {
                   <Link
                     key={item.id}
                     to={`/news/${item.id}`}
+                    onClick={() => handleNewsClick(item)}
                     className="block bg-gradient-to-b from-gray-900/90 via-gray-800/95 to-gray-900/90 rounded-lg border border-matrix-green/30 overflow-hidden hover:border-matrix-green hover:shadow-lg hover:shadow-matrix-green/20 transition-all"
                   >
                     <div className="flex">

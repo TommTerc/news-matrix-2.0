@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { FaArrowLeft, FaHeart, FaComment, FaShare, FaChevronLeft, FaChevronRight, FaExternalLinkAlt } from 'react-icons/fa';
 import { format, formatDistanceToNow, isSameMonth } from 'date-fns';
 import { mockNews, timelineEvents, TimelineEvent } from '../data/mockData';
+import activityLogService from '../services/activityLogService';
 import Comment from '../components/Comment';
 
 export default function NewsDetail() {
@@ -13,6 +14,7 @@ export default function NewsDetail() {
     events.length > 0 ? events[0].timestamp : new Date()
   );
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
+  const [hasLiked, setHasLiked] = useState(false);
 
   if (!newsItem) {
     return (
@@ -21,6 +23,25 @@ export default function NewsDetail() {
       </div>
     );
   }
+
+  // Handle like button
+  const handleLike = async () => {
+    if (!hasLiked) {
+      setHasLiked(true);
+      await activityLogService.logArticleLike(newsItem.id);
+    }
+  };
+
+  // Handle share button
+  const handleShare = async () => {
+    await activityLogService.logArticleShare(newsItem.id, 'internal');
+    
+    // Copy to clipboard for sharing
+    const shareText = `Check out: ${newsItem.title}`;
+    navigator.clipboard.writeText(shareText).catch(err => 
+      console.error('Failed to copy:', err)
+    );
+  };
 
   // Get unique months from events
   const months = Array.from(
@@ -66,15 +87,21 @@ export default function NewsDetail() {
           <p className="text-lg mb-6">{newsItem.description}</p>
 
           <div className="flex items-center space-x-12 text-matrix-green/60 border-t border-matrix-green/30 pt-4">
-            <button className="flex items-center space-x-2 hover:text-matrix-light transition-colors group">
-              <FaHeart className="group-hover:scale-110 transition-transform" />
-              <span>{newsItem.likes}</span>
+            <button 
+              onClick={handleLike}
+              className="flex items-center space-x-2 hover:text-matrix-light transition-colors group"
+            >
+              <FaHeart className={`group-hover:scale-110 transition-transform ${hasLiked ? 'text-red-500' : ''}`} />
+              <span>{newsItem.likes + (hasLiked ? 1 : 0)}</span>
             </button>
             <button className="flex items-center space-x-2 hover:text-matrix-light transition-colors group">
               <FaComment className="group-hover:scale-110 transition-transform" />
               <span>{newsItem.comments}</span>
             </button>
-            <button className="flex items-center space-x-2 hover:text-matrix-light transition-colors group">
+            <button 
+              onClick={handleShare}
+              className="flex items-center space-x-2 hover:text-matrix-light transition-colors group"
+            >
               <FaShare className="group-hover:scale-110 transition-transform" />
               <span>{newsItem.shares}</span>
             </button>

@@ -21,34 +21,45 @@ class CommentService {
    * Get all comments for an article
    */
   async getComments(articleUrl: string): Promise<Comment[]> {
+    console.log('Fetching comments for article:', articleUrl);
+    
     const { data, error } = await supabase
       .from('comments')
-      .select(`
-        id,
-        article_url,
-        user_id,
-        content,
-        created_at,
-        updated_at,
-        user_profiles!user_id (
-          username,
-          display_name
-        )
-      `)
+      .select('*')
       .eq('article_url', articleUrl)
       .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching comments:', error);
+      console.error('Error code:', error.code);
+      console.error('Article URL:', articleUrl);
       return [];
     }
 
-    // Transform data to include user profile fields at top level
-    return (data || []).map((comment: any) => ({
-      ...comment,
-      username: comment.user_profiles?.username || 'Anonymous',
-      display_name: comment.user_profiles?.display_name
-    }));
+    // Fetch user profiles for the comments
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map((c: any) => c.user_id))];
+      const { data: profiles, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id, username, display_name')
+        .in('id', userIds);
+
+      if (!profileError && profiles) {
+        const profileMap = new Map(profiles.map((p: any) => [p.id, p]));
+        
+        // Transform data to include user profile fields
+        return (data || []).map((comment: any) => {
+          const profile = profileMap.get(comment.user_id);
+          return {
+            ...comment,
+            username: profile?.username || 'Anonymous',
+            display_name: profile?.display_name
+          };
+        });
+      }
+    }
+
+    return data || [];
   }
 
   /**
@@ -133,6 +144,45 @@ class CommentService {
     }
 
     return data;
+  }
+
+  /**
+   * Get all comments by current user
+   */
+  async getUserComments(): Promise<Comment[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user comments:', error);
+      return [];
+    }
+
+    // Fetch user profile for the current user
+    if (data && data.length > 0) {
+      const { data: profile, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('id, username, display_name')
+        .eq('id', user.id)
+        .single();
+
+      if (!profileError && profile) {
+        // Transform data to include user profile fields at top level
+        return (data || []).map((comment: any) => ({
+          ...comment,
+          username: profile.username || 'Anonymous',
+          display_name: profile.display_name
+        }));
+      }
+    }
+
+    return data || [];
   }
 }
 

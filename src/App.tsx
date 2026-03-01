@@ -10,6 +10,7 @@ import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import MatrixRain from './components/MatrixRain';
 import Notifications from './pages/Notifications';
+import Bookmarks from './pages/Bookmarks';
 import Profile from './pages/Profile';
 import Home from './pages/Home';
 import AdminPanel from './pages/AdminPanel';
@@ -182,6 +183,7 @@ function App() {
               <Route path="/story" element={<StoryTimeline />} />
               <Route path="/studio" element={<Studio />} />
               <Route path="/notifications" element={<Notifications />} />
+              <Route path="/bookmarks" element={<Bookmarks />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/callback" element={<AuthCallback />} />

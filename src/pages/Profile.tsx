@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserCircle, FaEdit, FaLink, FaPhone, FaRegBookmark, FaRegComment, FaRegNewspaper, FaSpinner } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { FaUserCircle, FaEdit, FaLink, FaPhone, FaRegBookmark, FaRegComment, FaRegNewspaper, FaSpinner, FaRetweet } from 'react-icons/fa';
 import { format } from 'date-fns';
 import { supabase } from '../services/supabaseClient';
 import userProfileService from '../services/userProfileService';
+import activityLogService from '../services/activityLogService';
+import commentService, { Comment } from '../services/commentService';
+import bookmarkService, { ArticleBookmark } from '../services/bookmarkService';
+import repostService, { Repost } from '../services/repostService';
 
-type ProfileTab = 'overview' | 'posts' | 'comments' | 'saved';
+type ProfileTab = 'overview' | 'posts' | 'comments' | 'reposts' | 'saved';
 
 interface UserProfile {
   id?: string;
@@ -32,6 +37,12 @@ export default function Profile() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [bookmarks, setBookmarks] = useState<ArticleBookmark[]>([]);
+  const [reposts, setReposts] = useState<Repost[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [loadingBookmarks, setLoadingBookmarks] = useState(false);
+  const [loadingReposts, setLoadingReposts] = useState(false);
 
   // Load user and profile on mount
   useEffect(() => {
@@ -81,6 +92,47 @@ export default function Profile() {
 
     loadProfile();
   }, []);
+
+  // Load comments and bookmarks when tab changes or user updates
+  useEffect(() => {
+    if (!user) return;
+
+    const loadData = async () => {
+      if (activeTab === 'comments') {
+        setLoadingComments(true);
+        try {
+          const userComments = await commentService.getUserComments();
+          setComments(userComments);
+        } catch (err) {
+          console.error('Error loading comments:', err);
+        } finally {
+          setLoadingComments(false);
+        }
+      } else if (activeTab === 'reposts') {
+        setLoadingReposts(true);
+        try {
+          const userReposts = await repostService.getUserReposts(user.id);
+          setReposts(userReposts);
+        } catch (err) {
+          console.error('Error loading reposts:', err);
+        } finally {
+          setLoadingReposts(false);
+        }
+      } else if (activeTab === 'saved') {
+        setLoadingBookmarks(true);
+        try {
+          const userBookmarks = await bookmarkService.getUserBookmarks();
+          setBookmarks(userBookmarks);
+        } catch (err) {
+          console.error('Error loading bookmarks:', err);
+        } finally {
+          setLoadingBookmarks(false);
+        }
+      }
+    };
+
+    loadData();
+  }, [activeTab, user]);
 
   const handleEditProfile = () => {
     setIsEditing(true);
@@ -153,7 +205,7 @@ export default function Profile() {
         updates.avatar_url = profile.avatar_url;
       }
 
-      const profileData = await userProfileService.updateProfile(user.id, updates);
+      const profileData = await userProfileService.updateProfile(user.id, updates, user.email);
 
       if (profileData) {
         setProfile({
@@ -195,16 +247,177 @@ export default function Profile() {
         );
       
       case 'comments':
+        if (loadingComments) {
+          return (
+            <div className="flex justify-center items-center py-12">
+              <FaSpinner className="animate-spin text-2xl text-matrix-green" />
+            </div>
+          );
+        }
+        
+        if (comments.length === 0) {
+          return (
+            <div className="text-center text-matrix-green/60 py-12">
+              No comments yet
+            </div>
+          );
+        }
+
         return (
-          <div className="text-center text-matrix-green/60 py-12">
-            No comments yet
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <div
+                key={comment.id}
+                className="bg-matrix-black/80 border border-matrix-green/30 rounded-lg overflow-hidden hover:border-matrix-green transition-colors"
+              >
+                <Link
+                  to={`/story?url=${encodeURIComponent(comment.article_url)}`}
+                  className="block p-4 border-b border-matrix-green/20 bg-matrix-dark/50 hover:bg-matrix-dark/80 transition-colors"
+                >
+                  <p className="text-sm text-matrix-green/60 truncate hover:text-matrix-green transition-colors">
+                    {comment.article_url}
+                  </p>
+                </Link>
+                
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-bold text-matrix-light">{comment.display_name || comment.username}</h4>
+                      <p className="text-sm text-matrix-green/60">{format(new Date(comment.created_at), 'MMM dd, yyyy HH:mm')}</p>
+                    </div>
+                  </div>
+                  <p className="text-matrix-green/80">{comment.content}</p>
+                  
+                  <Link
+                    to={`/story?url=${encodeURIComponent(comment.article_url)}`}
+                    className="inline-block mt-3 text-sm text-matrix-green/60 hover:text-matrix-green transition-colors"
+                  >
+                    View in article →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      
+      case 'reposts':
+        if (loadingReposts) {
+          return (
+            <div className="flex justify-center items-center py-12">
+              <FaSpinner className="animate-spin text-2xl text-matrix-green" />
+            </div>
+          );
+        }
+
+        if (reposts.length === 0) {
+          return (
+            <div className="text-center text-matrix-green/60 py-12">
+              No reposts yet
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-4">
+            {reposts.map((repost) => (
+              <div
+                key={repost.id}
+                className="bg-matrix-black/80 border border-matrix-green/30 rounded-lg overflow-hidden hover:border-matrix-green transition-colors"
+              >
+                <Link
+                  to={`/story?url=${encodeURIComponent(repost.article_url)}`}
+                  className="block p-4 border-b border-matrix-green/20 bg-matrix-dark/50 hover:bg-matrix-dark/80 transition-colors"
+                >
+                  {repost.article_image && (
+                    <img
+                      src={repost.article_image}
+                      alt={repost.article_title || 'Article image'}
+                      onError={(e) => {
+                        // Hide image if it fails to load
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                      className="w-full h-40 object-cover rounded mb-3 border border-matrix-green/20"
+                    />
+                  )}
+                  <p className="font-bold text-matrix-light mb-1">
+                    {repost.article_title || 'Untitled Article'}
+                  </p>
+                  {repost.article_source && (
+                    <p className="text-sm text-matrix-green/60">{repost.article_source}</p>
+                  )}
+                  {repost.article_description && (
+                    <p className="text-sm text-matrix-green/80 line-clamp-2 mt-2">{repost.article_description}</p>
+                  )}
+                  {!repost.article_description && (
+                    <p className="text-sm text-matrix-green/60 italic mt-2">No description available</p>
+                  )}
+                </Link>
+
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FaRetweet className="text-matrix-green" />
+                    <p className="text-sm text-matrix-green/60">{format(new Date(repost.created_at), 'MMM dd, yyyy')}</p>
+                  </div>
+                  {repost.repost_caption && (
+                    <p className="text-matrix-green/90 mb-3 italic">"{repost.repost_caption}"</p>
+                  )}
+
+                  <Link
+                    to={`/story?url=${encodeURIComponent(repost.article_url)}`}
+                    className="inline-block text-sm text-matrix-green/60 hover:text-matrix-green transition-colors"
+                  >
+                    View full article →
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         );
       
       case 'saved':
+        if (loadingBookmarks) {
+          return (
+            <div className="flex justify-center items-center py-12">
+              <FaSpinner className="animate-spin text-2xl text-matrix-green" />
+            </div>
+          );
+        }
+
+        if (bookmarks.length === 0) {
+          return (
+            <div className="text-center text-matrix-green/60 py-12">
+              No saved items
+            </div>
+          );
+        }
+
         return (
-          <div className="text-center text-matrix-green/60 py-12">
-            No saved items
+          <div className="space-y-4">
+            {bookmarks.map((bookmark) => (
+              <div
+                key={bookmark.id}
+                className="bg-matrix-black/80 border border-matrix-green/30 rounded-lg p-4 hover:border-matrix-green transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h4 className="font-bold text-matrix-light flex items-center gap-2">
+                      <FaRegBookmark className="text-matrix-green" />
+                      Saved Article
+                    </h4>
+                    <p className="text-sm text-matrix-green/60 mt-1">{bookmark.article_url}</p>
+                    <p className="text-sm text-matrix-green/60">{format(new Date(bookmark.created_at), 'MMM dd, yyyy')}</p>
+                  </div>
+                  <a
+                    href={bookmark.article_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-4 px-4 py-2 bg-matrix-green/20 text-matrix-green border border-matrix-green rounded hover:bg-matrix-green/30 transition-colors"
+                  >
+                    Open →
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
         );
     }
@@ -387,7 +600,7 @@ export default function Profile() {
             {/* Tabs */}
             <div className="mb-6 border-b border-matrix-green/30">
               <div className="flex space-x-8">
-                {(['overview', 'posts', 'comments', 'saved'] as const).map((tab) => (
+                {(['overview', 'posts', 'comments', 'reposts', 'saved'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}

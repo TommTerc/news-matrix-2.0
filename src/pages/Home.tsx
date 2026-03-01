@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaRegClock, FaRegComment, FaRegHeart, FaShare } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
 import newsApi from '../services/newsApi';
+import activityLogService from '../services/activityLogService';
 import CongressWidget from '../components/CongressWidget';
 import SuggestedUsers from '../components/SuggestedUsers';
 
@@ -29,6 +30,13 @@ export default function Home() {
         setLoading(false);
       });
   }, [category]);
+
+  // Handle article click to log activity
+  const handleArticleClick = (article: any) => {
+    activityLogService.logArticleView(article.url).catch(err => 
+      console.error('Error logging article view:', err)
+    );
+  };
 
   return (
     <div className="min-h-screen bg-matrix-black/40 backdrop-blur-[2px] font-mono">
@@ -72,7 +80,8 @@ export default function Home() {
                   <Link
                     key={article.url || idx}
                     to={`/story?${storyParams.toString()}`}
-                    className="energy-container block bg-black/40 hover:border-matrix-green transition-all"
+                    onClick={() => handleArticleClick(article)}
+                    className="energy-container group block bg-black/40 hover:border-matrix-green transition-all"
                   >
                     <div className="relative h-56 overflow-hidden">
                       <img

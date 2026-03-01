@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
-import { FaArrowLeft, FaThumbsUp, FaThumbsDown, FaComment, FaSpinner, FaTimes, FaClock } from 'react-icons/fa';
+import { FaArrowLeft, FaThumbsUp, FaThumbsDown, FaComment, FaSpinner, FaTimes, FaClock, FaShare, FaRetweet } from 'react-icons/fa';
 import { format } from 'date-fns';
 import commentService, { Comment } from '../services/commentService';
 import truthService, { TruthRating, TruthStats } from '../services/truthService';
+import repostService from '../services/repostService';
 import { supabase } from '../services/supabaseClient';
+import activityLogService from '../services/activityLogService';
 
 export default function StoryTimeline() {
   const [searchParams] = useSearchParams();
@@ -31,6 +33,10 @@ export default function StoryTimeline() {
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [ratingLoading, setRatingLoading] = useState(false);
+  const [hasReposted, setHasReposted] = useState(false);
+  const [repostLoading, setRepostLoading] = useState(false);
+  const [showRepostForm, setShowRepostForm] = useState(false);
+  const [repostCaption, setRepostCaption] = useState('');
 
   // Get article data from URL params
   useEffect(() => {
@@ -41,15 +47,29 @@ export default function StoryTimeline() {
     const urlToImage = searchParams.get('urlToImage');
     const url = searchParams.get('url');
 
-    if (title && source && url) {
-      setArticle({
-        title,
-        description: description || '',
-        source: { name: source },
-        publishedAt: publishedAt || new Date().toISOString(),
-        urlToImage,
-        url
-      });
+    if (url) {
+      // If we have full article data, use it
+      if (title && source) {
+        setArticle({
+          title,
+          description: description || '',
+          source: { name: source },
+          publishedAt: publishedAt || new Date().toISOString(),
+          urlToImage,
+          url
+        });
+      } else {
+        // If only URL is provided (from profile comments), create minimal article
+        // The URL will be used to fetch comments
+        setArticle({
+          title: 'Article',
+          description: 'Loading article details...',
+          source: { name: 'Unknown Source' },
+          publishedAt: new Date().toISOString(),
+          urlToImage: undefined,
+          url
+        });
+      }
     }
   }, [searchParams]);
 
@@ -60,6 +80,10 @@ export default function StoryTimeline() {
 
       try {
         const articleUrl = article.url;
+        
+        // Log article view
+        await activityLogService.logArticleView(articleUrl);
+        
         const [commentsData, statsData] = await Promise.all([
           commentService.getComments(articleUrl),
           truthService.getTruthStats(articleUrl)
@@ -76,6 +100,10 @@ export default function StoryTimeline() {
         if (currentUser) {
           const rating = await truthService.getUserRating(articleUrl);
           setUserRating(rating);
+          
+          // Check if user has reposted this article
+          const reposted = await repostService.hasReposted(articleUrl);
+          setHasReposted(reposted);
         }
       } catch (err) {
         console.error('Error loading data:', err);
@@ -103,6 +131,9 @@ export default function StoryTimeline() {
     try {
       const result = await commentService.addComment(article.url, newComment);
       if (result) {
+        // Log comment creation
+        await activityLogService.logCommentCreate(article.url, result.id);
+        
         setComments([result, ...comments]);
         setNewComment('');
       }
@@ -123,6 +154,9 @@ export default function StoryTimeline() {
     try {
       const success = await truthService.submitRating(article.url, rating);
       if (success) {
+        // Log truth rating
+        await activityLogService.logTruthRating(article.url, rating);
+        
         setUserRating(rating);
         const stats = await truthService.getTruthStats(article.url);
         setTruthStats(stats);
@@ -142,6 +176,55 @@ export default function StoryTimeline() {
       }
     } catch (err) {
       console.error('Error deleting comment:', err);
+    }
+  };
+
+  const handleRepost = async () => {
+    if (!user || !article) {
+      alert('Please sign in to repost');
+      return;
+    }
+
+    setRepostLoading(true);
+    try {
+      const success = await repostService.repostArticle(
+        article.url,
+        {
+          title: article.title,
+          description: article.description,
+          image: article.urlToImage || undefined,
+          source: article.source.name
+        },
+        repostCaption || undefined
+      );
+
+      if (success) {
+        setHasReposted(true);
+        setShowRepostForm(false);
+        setRepostCaption('');
+        alert('Article reposted to your profile!');
+      } else {
+        alert('Failed to repost article');
+      }
+    } catch (err) {
+      console.error('Error reposting:', err);
+      alert('Error reposting article');
+    } finally {
+      setRepostLoading(false);
+    }
+  };
+
+  const handleRemoveRepost = async () => {
+    if (!article) return;
+
+    try {
+      const success = await repostService.deleteRepost(article.url);
+      if (success) {
+        setHasReposted(false);
+        alert('Repost removed');
+      }
+    } catch (err) {
+      console.error('Error removing repost:', err);
     }
   };
 
@@ -192,6 +275,57 @@ export default function StoryTimeline() {
           >
             Read Full Article →
           </a>
+          
+          <div className="flex gap-2 mt-4">
+            {hasReposted ? (
+              <button
+                onClick={handleRemoveRepost}
+                className="px-4 py-2 bg-matrix-green/30 text-matrix-green border border-matrix-green rounded hover:bg-matrix-green/20 transition-colors flex items-center gap-2"
+              >
+                <FaRetweet />
+                Reposted
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowRepostForm(!showRepostForm)}
+                className="px-4 py-2 bg-matrix-green/20 text-matrix-green border border-matrix-green rounded hover:bg-matrix-green/30 transition-colors flex items-center gap-2"
+              >
+                <FaRetweet />
+                Repost
+              </button>
+            )}
+          </div>
+
+          {showRepostForm && (
+            <div className="mt-4 p-4 bg-matrix-dark/50 border border-matrix-green/30 rounded-lg">
+              <textarea
+                value={repostCaption}
+                onChange={(e) => setRepostCaption(e.target.value)}
+                placeholder="Add a caption (optional)..."
+                className="w-full bg-matrix-black/80 border border-matrix-green/30 rounded p-2 text-matrix-green placeholder-matrix-green/50 focus:outline-none focus:border-matrix-green mb-3"
+                rows={3}
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRepost}
+                  disabled={repostLoading}
+                  className="px-4 py-2 bg-matrix-green text-matrix-black rounded hover:bg-matrix-light transition-colors disabled:opacity-50 flex items-center gap-2 font-bold"
+                >
+                  {repostLoading ? <FaSpinner className="animate-spin" /> : <FaRetweet />}
+                  Repost to Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRepostForm(false);
+                    setRepostCaption('');
+                  }}
+                  className="px-4 py-2 bg-matrix-green/20 text-matrix-green border border-matrix-green rounded hover:bg-matrix-green/10 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </article>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
