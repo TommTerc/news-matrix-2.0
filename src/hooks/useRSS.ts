@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import rssService, { RSSFeed } from '../services/rssService';
+import rssService, { RSSFeed, RSS_FEEDS } from '../services/rssService';
 import { NewsItem } from '../data/mockData';
 
 interface UseRSSParams {
@@ -19,7 +19,7 @@ export function useRSS({ feedId, category }: UseRSSParams = {}) {
         let newsItems: NewsItem[];
 
         if (feedId) {
-          const feed = rssService.RSS_FEEDS.find(f => f.id === feedId);
+          const feed = RSS_FEEDS.find(f => f.id === feedId);
           if (!feed) throw new Error('Feed not found');
           newsItems = await rssService.fetchFeed(feed);
         } else {

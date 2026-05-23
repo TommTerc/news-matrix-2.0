@@ -16,7 +16,7 @@ import Home from './pages/Home';
 import AdminPanel from './pages/AdminPanel';
 import { adminService } from './services/adminService';
 
-function NavLink({ to, icon: Icon, label }: { to: string; icon: React.ComponentType; label: string }) {
+function NavLink({ to, icon: Icon, label }: { to: string; icon: React.ComponentType<any>; label: string }) {
   const location = useLocation();
   const isActive = location.pathname === to;
 
