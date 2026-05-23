@@ -43,9 +43,15 @@ class TrendingService {
     }
 
     try {
-      // Note: Twitter APIv2 doesn't have a trendingTopics endpoint
-      // Using mock data or alternative approach
-      const trendingTopics: TrendingTopic[] = [];
+      const trends = await twitterClient.v2.trendingTopics();
+      const trendingTopics: TrendingTopic[] = trends.data.map(trend => ({
+        id: trend.id,
+        name: trend.name,
+        tweetCount: trend.tweet_volume || 0,
+        category: this.categorizeTopicByKeywords(trend.name),
+        source: 'twitter',
+        timestamp: new Date()
+      }));
 
       this.cache.set('twitter', {
         data: trendingTopics,

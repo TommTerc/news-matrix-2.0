@@ -3,12 +3,12 @@ import { API_CONFIG } from '../config/api.config';
 const newsApi = {
     getTopHeadlines: async (params) => {
         try {
-            const response = await axios.get('https://newsmatrix.org/api-proxy/api/news/top-headlines', {
+            const response = await axios.get('/api/news/top-headlines', {
                 params: {
+                    ...params,
                     country: params?.country || 'us',
-                    category: params?.category,
-                    pageSize: params?.pageSize || 12,
-                    apiKey: 'not-needed-proxy-handles-it',
+                    pageSize: params?.pageSize || 5,
+                    apiKey: API_CONFIG.newsApi.apiKey,
                 },
             });
             return response.data;
